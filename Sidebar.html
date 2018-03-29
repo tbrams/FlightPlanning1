@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <?!= include('Stylesheet'); ?>
+  </head>
+  <body>
+<ul id="tabs">
+    <li><a href="#" name="tab1">One</a></li>
+    <li><a href="#" name="tab2">Two</a></li>
+    <li><a href="#" name="tab3">Three</a></li>
+    <li><a href="#" name="tab4">Four</a></li>    
+</ul>
+
+<div id="content"> 
+    <div id="tab1">
+    <h3>Trip details</h3>
+     <form id="Trip1">
+        <div>
+          <div class="leftr">
+             <label>Departure</label>
+             <p id="DEPWind" class="newline">Wind: <span  class="NotDefined" id="DEPWindDetail">N/A</span></p>
+          </div>
+          <div class="right">
+             <select id="DeptAD"><option>N/A</option></select> 
+          </div>
+        </div>
+        <div>
+          <div class="leftr">
+             <label>Runway</label>
+             <p id="DRWLtxt" class="newline, hidden"><span id="DRWLval">N/A</span> [m]</p>
+          </div>          
+          <div class="right"><select id="DeptRW"><option>N/A</option></select></div>
+        </div>
+        <div>
+          <div class="leftr"><label>Arrival</label>
+             <p id="ARRWind" class="newline">Wind: <span class="NotDefined" id="ARRWindDetail">N/A</span></p>
+          </div>
+          <div class="right"><select id="ArrAD"><option>N/A</option></select></div>
+        </div>
+        <div>
+          <div class="leftr">
+              <label>Runway</label>
+              <p id="ARWLtxt" class="newline, hidden"><span id="ARWLval">N/A</span> [m]</p>
+          </div>
+          <div class="right"><select id="ArrRW"><option>N/A</option></select></div>
+        </div>
+
+      </form>
+      </div>
+ 
+      
+    <div id="tab2"> 
+        <h3>Route Planning</h3>
+         <p>
+         Keep adding Waypoints here and they will be added as rows in the Route Plan. <br />Feel free to add an alternative destination as well.
+         </p>
+
+        <p><b>Waypoint</b>
+        
+        </p>
+        <form id="Trip">
+           <div class="block col-contain">
+               <div class="col-one">
+                   <div><label>Destination</label></div>
+                   <div><label>Distance</label></div>
+                   <div><label>True course</label></div>
+               </div>
+               
+               <div>
+                  <div><input type="text" size="11" id="WPNinp" value=""></div>
+                  <div><input type="text" size="11" id="WPDinp" value=""></div>
+                  <div><input type="text" size="11" id="WPTinp" value="000"></div>       
+               </div>
+           </div>
+
+           <div>
+               <div class="OKBtnFldW"><button class="blue"  id="AddWPbtn">Add</button></div>
+           </div>
+        </form>
+
+
+       <p class="extraVerticalSpace"><b>Alternative</b></p>
+       <form>
+           <div class="block col-contain">
+               <div class="col-one">
+                   <div><label>Destination</label></div>
+                   <div><label>Distance</label></div>
+                   <div><label>True course</label></div>
+               </div>
+               <div>
+                  <div><input type="text" size="11" id="ADeInp" value=""></div>
+                  <div><input type="text" size="11" id="ADiInp" value=""></div>
+                  <div><input type="text" size="11" id="ATrInp" value="000"></div>    
+               </div>
+                
+            </div>
+               <div>
+                  <div class="OKBtnFldW"><button class="blue"  id="AltDestBtn">OK</button></div>
+               </div>               
+      </form>
+
+ 
+    </div>
+
+    
+    <div id="tab3">
+        <h3>Aircraft and performance</h3>
+    <form id="Performance">
+       <div class="block col-contain">
+          <div class="col-one">
+             <div class="selSize">Aeroplane reg.</div>
+             <div class="inpSize">
+                <p id="APTtxt">Type: <span class="NotDefined" class="NotDefined" id="APTval">N/A</span></p>
+             </div>
+             <div class="inpSize">RPM</div>
+             <div class="inpSize">Altitude [ft]</div>
+          </div>    
+          <div>
+             <div><select id="APTsel"><option>N/A</option></select></div>    
+             <div><div class="spacer2">&nbsp;</div></div>
+             <div><input type="text" size="11" id="RPMinp" value=""></div>
+             <div><input type="text" size="11" id="ALTinp" value=""></div>
+          </div>
+       </div>
+       <div class="block" id="button-bar">
+          <div class="OKBtnFldW">
+             <button id="OKPerfBtn" class="blue">Update</button>          
+          </div>
+       </div>
+    </form>
+    
+    <h3 class="extraVerticalSpace">Weight and Balance</h3>
+    <form id="Masses">
+       <div class="block col-contain">
+          <div class="col-one">
+              <div class="inpSize">Front Seats [kg]</div>
+              <div class="inpSize">Back Seats [kg]</div>
+              <div class="inpSize">Luggage front [kg]</div>
+              <div class="inpSize">Luggage front [kg]</div>
+              <div class="inpSize">Fuel total [liter]</div>
+              <div class="inpSize">Fuel consumed [liter]</div>
+          </div>
+          <div>
+             <div><input type="text" size="11" id="W_front" value=""></div>
+             <div><input type="text" size="11" id="W_back" value=""></div>
+             <div><input type="text" size="11" id="W_luggage_front" value=""></div>
+             <div><input type="text" size="11" id="W_luggage_back" value=""></div>
+             <div><input type="text" size="11" id="W_fuel" value=""></div>
+             <div><input type="text" size="11" id="W_fuel_spent" value=""></div>
+          </div>
+       </div>
+
+       <div class="block" id="button-bar">
+          <div class="TwoBtnFld">
+             <button id="ViewBtn" class="blue">View</button>          
+             <button id="OKWBtn" class="blue">Update</button>          
+          </div>
+       </div>
+
+
+    </form>
+
+    <div id="chart_div" style="position: absolute;left: 0px;top:0px"></div> 
+  
+    </div>
+    
+    
+    
+   <div id="tab4">
+    <h3>Take off  considerations</h3>
+    <form>
+        <b>Baneoverflade</b>
+        <div class="block col-contain">
+          <div class="col-one">
+              <div>
+                <input type="checkbox" id="cb_surf_1">
+                <label>Fast bane, græs</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cb_surf_2">
+                <label>Blød overflade</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cb_surf_3">
+                <label>Vand/snesjap</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cb_surf_4">
+                <label>Våd sne</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cb_surf_5">
+                <label>Frossen sne</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cb_surf_6">
+                <label>Hældning op</label>
+              </div>
+            </div>
+          
+            <div>
+               <div class="radio-spacer"></div>
+               <div>
+                  <input type="text" size="2" id="tb_surf_1" value="0">
+                  <label>cm</label>
+                </div>
+               <div>
+                 <div class="radio-spacer">&nbsp;</div>
+               </div>
+               <div>
+                 <input type="text" size="2" id="tb_surf_3" value="0">
+                 <label>cm</label>
+               </div>
+               <div>
+                 <input type="text" size="2" id="tb_surf_4" value="0">
+                 <label>cm</label>
+               </div>
+               <div>
+                 <input type="text" size="2" id="tb_surf_5" value="0">
+                 <label>cm</label>
+               </div>
+               <div>
+                 <input type="text" size="2" id="tb_surf_6" value="0" >
+                 <label>%</label>
+               </div>
+            </div>
+       </div>
+       <div class="block" id="button-bar">
+          <div class="OKBtnFld">
+             <button id="TOBtn" class="blue">Confirm</button>          
+          </div>
+       </div>
+
+       </form>
+ 
+ 
+     <h3 class="extraVerticalSpace">Landing considerations</h3>
+    <form>
+        <div class="block col-contain">
+          <div class="col-one">
+              <b>Baneoverflade</b>
+              <div>
+                <input type="checkbox" id="cl_surf_1">
+                <label>Tørt græs</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cl_surf_2">
+                <label>Vådt græs</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cl_surf_3">
+                <label>Blød overfl/Sne</label>
+              </div>
+              <div>
+                <input type="checkbox" id="cl_surf_4">
+                <label>Hældning ned</label>
+              </div>
+            </div>
+          
+            <div>
+               <b>&nbsp;</b>
+               <div class="radio-spacer"></div>
+            <div>
+               <input type="text" size="2" id="tl_surf_1" value="0">
+               <label>cm</label>
+            </div>
+            <div>
+              <input type="text" size="2" id="tl_surf_2" value="0">
+              <label>cm</label>
+            </div>
+            <div>
+              <div class="radio-spacer">&nbsp;</div>
+            </div>
+            <div>
+              <input type="text" size="2" id="tl_surf_4" value="0">
+              <label>cm</label>
+            </div>
+          </div>
+       </div>
+       <div class="block" id="button-bar">
+          <div class="OKBtnFld">
+             <button id="LDBtn" class="blue">Confirm</button>          
+          </div>
+       </div>
+
+       </form>
+ 
+ 
+       </div>
+
+</div>
+ 
+ <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+ <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+ <?!= include('Sidebar.js'); ?>
+  </body>
+</html>

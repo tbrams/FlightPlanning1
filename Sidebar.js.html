@@ -1,0 +1,543 @@
+ <script>
+// DB Fields
+const ICAO=0;
+const WIND=1;
+const COL_RW=1;
+const COL_LENGTH=2;
+
+// Variables for Weight and Mass
+var to_M=0;
+var to_W=0;
+var ld_M=0;
+var ld_W=0;
+
+// Envelope coordinates 
+var EnvelopeCoords = [];
+
+// Use RegEx to test is TT is a valid course with three digits and so on....
+isDirection = /^(\d\d\d)$/;
+isNumeric = /^(\d+|\d+\.\d*|\d*\.\d+)$/;
+
+
+$(document).ready(function() {
+
+    $("#content>div").hide(); // Initially hide all content
+    $("#tabs li:first").attr("id","current"); // Activate first tab
+    $("#content div:first").fadeIn(); // Show first tab content
+    
+    $('#tabs a').click(function(e) {
+       e.preventDefault();
+       if ($(this).closest("li").attr("id") == "current"){ //detection for current tab
+          return       
+       } else {             
+         $("#content>div").hide(); //Hide all content
+         $("#tabs li").attr("id",""); //Reset id's
+         $(this).parent().attr("id","current"); // Activate this
+         $('#' + $(this).attr('name')).fadeIn(); // Show content for current tab
+       }
+    });
+
+
+
+    // Initialize Aerodrome dropdown values and set defaults
+    // Check if there is anything in the planning sheet already ... if there is, use those values
+    // otherwise leave room for EKRK as default for now
+
+    google.script.run.withSuccessHandler(
+       function(ADs, element) {
+           if (ADs[0]=="") 
+              defaultDEP="EKRK";
+           else 
+              defaultDEP=ADs[0];
+          
+           if (ADs[1]=="") 
+              defaultARR="EKRK";
+           else
+              defaultARR=ADs[1];
+              
+           console.log("defaultDEP: "+defaultDEP);
+           console.log("defaultARR: "+defaultARR);
+              
+           // Generate the HTML and trigger a select event on the standard value   
+           google.script.run.withSuccessHandler(
+               function(myHTML, element) {
+                  $('#DeptAD').html(myHTML).val(defaultDEP).trigger('change');
+                  $('#ArrAD').html(myHTML).val(defaultARR).trigger('change');
+               }).readIntoList('Aerodromes', 'AerodromeData');
+       }).getADlist();
+
+
+
+
+    // Initialize Airplane Select box with fresh HTML and fire a onChange event 
+    google.script.run.withSuccessHandler(
+       function(myHTML, element) {
+           $('#APTsel').html(myHTML).trigger('change') ;
+       }).flightSelectionHTML() ;
+
+
+    $('#DeptAD').change(
+       // With the AD now selected - prepare the detail data for Wind info along with the RW drop down and record this on the sheet 
+       function(text){
+          var myWind;  // undefined at this point
+          var depICAO= $('#DeptAD').val();     
+          console.log('TOB: Departure: '+ depICAO +' '+$('#DeptAD option:selected').text());
+
+          // Make a note about the wind as well, now that we have DEP_AD
+          google.script.run.withSuccessHandler(function(myWind, element) {
+                   if (myWind===undefined) {
+                      $('#DEPWindDetail').html("N/A").addClass('NotDefined');
+                   } else {
+                      $('#DEPWindDetail').html(myWind).removeClass('NotDefined');
+                   }
+                }).tbVLookUp(depICAO, 'MetarData', ICAO, WIND);
+
+          // Update RW drop down box
+          google.script.run.withSuccessHandler(function(myHTML, element) {$('#DeptRW').html(myHTML).trigger('change');})
+               .getDetails('Aerodromes', 'AerodromeData',$('#DeptAD').val(), COL_RW, COL_LENGTH);
+
+          // Update the spreadsheet DEP cell
+          google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: DEP Cell populated');})
+                .writeCell('DEP', depICAO);          
+     });
+
+    $('#ArrAD').change(
+       // With the key now selected - prepare the detail data for next drop down 
+       function(text){
+          var arrICAO= $('#ArrAD').val();     
+          console.log('TOB: Arrival: '+ arrICAO +' '+$('#ArrAD option:selected').text());
+
+          // Make a note about the wind as well, now that we have ARR_AD
+          google.script.run.withSuccessHandler(function(myWind, element) {
+                 if (myWind===undefined) {
+                      $('#ARRWindDetail').html("N/A").addClass('NotDefined');
+                   } else {
+                      $('#ARRWindDetail').html(myWind).removeClass('NotDefined');
+                   }
+                 }).tbVLookUp(arrICAO, 'MetarData', ICAO, WIND);
+
+          // Update RW drop down box
+          google.script.run.withSuccessHandler(function(myHTML, element) {$('#ArrRW').html(myHTML).trigger('change');})
+               .getDetails('Aerodromes', 'AerodromeData',$('#ArrAD').val(), COL_RW, COL_LENGTH);
+
+          // Update the spreadsheet ARR cell
+          google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: ARR Cell populated');})
+                .writeCell('ARR', arrICAO);
+          
+     });
+
+
+    // Function updating the RW fields on the server side Google Sheet
+    $('#DeptRW').change(
+       function(text){
+          var RW= $('#DeptRW option:selected').text();     
+          var RWW= $('#DeptRW').val();     
+
+          console.log('TOB: RW: '+ RW +' selected');
+
+          // Update the spreadsheet DEP_RW cell
+          google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: DEP_RW Cell populated');})
+                .writeCell('DEP_RW',RW);
+                
+          // make the length info supplement available here later
+          $('#DRWLtxt').removeClass('hidden');
+          $('#DRWLval').text(RWW);
+     });
+
+    $('#ArrRW').change(
+       function(text){
+          var RW= $('#ArrRW option:selected').text();
+          var RWW= $('#ArrRW').val();     
+
+          console.log('TOB: Arr RW: '+ RW +' selected');
+
+          // Update the spreadsheet ARR_RW cell
+          google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: ARR_RW Cell populated');})
+                .writeCell('ARR_RW',RW);         
+
+          // make the length info supplement available here later
+          $('#ARWLtxt').removeClass('hidden');
+          $('#ARWLval').text(RWW);
+
+     });
+     
+     
+     // Aircraft Type select box 
+     $('#APTsel').change(
+       function(text){
+          var ACReg= $('#APTsel option:selected').text();     
+          var ACTyp= $('#APTsel option:selected').val();
+          console.log('TOB: ACTyp: '+ACTyp);
+
+          // Update the spreadsheet OY cell
+          google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: OY Cell populated');})
+                .writeCell('OY',ACReg); 
+
+          // Update the spreadsheet OYType cell
+          google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: OYType Cell populated');})
+                .writeCell('OYType',ACTyp); 
+
+          // Update the type field under the text
+          $('#APTval').text(ACTyp).removeClass('NotDefined');
+       
+     });
+     
+     
+     // Add WayPoint Button Clicked
+     
+     $('#AddWPbtn').click(function(e) {
+        e.preventDefault();
+
+        console.log("TOB: AddWPBtn clicked");
+        
+        // Add another line in the flight plan with the data provided
+        
+        name=$('#WPNinp').val().trim();
+        dist=$('#WPDinp').val().trim();
+        tt=$('#WPTinp').val().trim();
+        
+        // Unless there is a problem with one of the input boxes, write these to the Alternative Destination Segment        
+        if ((name!="") && isNumeric.test(dist) && isDirection.test(tt)) {
+           google.script.run.withSuccessHandler(function(myHTML, element) {
+                console.log('TOB: Another line added to the flight plan');
+                // Clear and initialize fields
+                $('#WPNinp').val("");
+                $('#WPDinp').val("");
+                $('#WPTinp').val("000");
+                }).updateRouteTable(name, dist, tt);
+       } else {
+          // Consider a message box later, for now a console message is fine...
+          console.log("TOB: Error - all way point fields should have valid contents. Nothing written to sheet...");
+       }
+     });
+
+
+     // Add Alternate desination Button Clicked
+
+     $('#AltDestBtn').click(function(e) {
+        e.preventDefault();
+
+        console.log("TOB: AltDestBtn clicked");
+        
+        // Update the cells for the alternative destination
+        
+        name=$('#ADeInp').val().trim();
+        dist=$('#ADiInp').val().trim();
+        tt=$('#ATrInp').val().trim();
+        
+        // Unless there is a problem with one of the input boxes, write these to the Alternative Destination Segment        
+        if ((name!="") && isNumeric.test(dist) && isDirection.test(tt)) {
+           google.script.run.withSuccessHandler(function(myHTML, element) {
+                // Clear and initialize fields
+                 console.log('TOB: Alternative Destination Cells populated');
+                 $('#ADeInp').val("");
+                 $('#ADiInp').val("");
+                 $('#ATrInp').val("000");
+                 }).writeAltDestCells(name, dist, tt);
+       } else {
+          // Consider a message box later, for now a console message is fine...
+          console.log("TOB: Error - all alternative desination fields should have valid contents. Nothing written to sheet...");
+       }
+     });
+
+
+
+     $('#OKPerfBtn').click(function(e) {
+        e.preventDefault();
+
+        // Update the spreadsheet RPM cells
+        rpm=$('#RPMinp').val();
+        google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: Engine Cells populated');}).writeEngineCells(rpm);
+                
+                   
+        // Update the spreadsheet Altitude cells
+        alt=$('#ALTinp').val();
+        google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: ALT Cells populated');}).writeAltCells(alt);
+                
+     });
+
+
+ 
+
+    // Action buttons for weight input
+    $('#OKWBtn').click(function(e) {
+         e.preventDefault();
+        
+        // Get the data from the input above and write it to the spreadsheet.
+        W_Front=$('#W_front').val().trim();
+        W_Back=$('#W_back').val().trim();
+        W_Lug=$('#W_luggage_front').val().trim();
+        W_Fuel=$('#W_fuel').val().trim();
+        W_Fuel_Spent=$('#W_fuel_spent').val().trim();
+
+        if (isNumeric.test(W_Front) && isNumeric.test(W_Back) && isNumeric.test(W_Lug) && isNumeric.test(W_Fuel) && isNumeric.test(W_Fuel_Spent)) {
+
+           // Update the spreadsheet Mass cells first
+           google.script.run.withSuccessHandler(function(myHTML, element) {
+                          console.log('TOB: Mass cells populated');
+                          // Then get new metrics back from Spreadsheet
+                          google.script.run.withSuccessHandler(function(myVal, element) {
+                                 console.log('TOB: TO/LDG Metrics fetched');
+                                 to_M=parseInt(myVal[0][1]);
+                                 to_W=parseInt(myVal[0][0]);
+                                 ld_M=parseInt(myVal[1][1]);
+                                 ld_W=parseInt(myVal[1][0]);
+                                 
+                                 
+                                 // Then get the envelope coordinates and save in global EnvelopeCoords variable
+                                 google.script.run.withSuccessHandler(function(coords, element) { 
+                                     if (coords!=-1) {
+                                        console.log("TOB: Envelope fetched");
+                                        EnvelopeCoords = coords;
+                                        
+                                        google.charts.load('current', {packages: ['corechart', 'line']});
+                                        google.charts.setOnLoadCallback(drawCurveTypes1);
+                                        
+                                        // Make the button visible
+                                        $('#ViewBtn').css("visibility", "visible");              
+                                        
+                                     } else {
+                                        console.log("TOB: Envelope not found");
+                                     }
+                                     
+                                 }).patchEnvelopeData(to_W, ld_W, to_M, ld_M);
+                                   
+                          }).getNumbers();
+ 
+                       //   $('#xpq').css("visibility", "hidden");
+           }).writeMassFields(W_Front, W_Back, W_Lug, W_Fuel, W_Fuel_Spent); 
+        } else {
+           // Consider making an error message dialog or ...
+           console.log("Error: All mass fields need to be numerical. Nothing updated!");
+        }
+                
+      });
+
+
+     $('#ViewBtn').click(function(e){
+         e.preventDefault();
+         document.getElementById('chart_div').style.visibility='visible';
+
+         console.log("TRY YO VIEW ....");
+     });
+
+    // Move focus to input field if checked
+    $('#cb_surf_1').change(function(e){if($('#cb_surf_1').is(":checked")) $('#tb_surf_1').focus();});
+    $('#cb_surf_3').change(function(e){if($('#cb_surf_3').is(":checked")) $('#tb_surf_3').focus();});
+    $('#cb_surf_4').change(function(e){if($('#cb_surf_4').is(":checked")) $('#tb_surf_4').focus();});
+    $('#cb_surf_5').change(function(e){if($('#cb_surf_5').is(":checked")) $('#tb_surf_5').focus();});
+    $('#cb_surf_6').change(function(e){if($('#cb_surf_6').is(":checked")) $('#tb_surf_6').focus();});
+
+
+     // Action Button for Take off surface factors
+     $('#TOBtn').click(function(e) {
+       e.preventDefault();
+       factor=0;
+       MaxPercentage=0;
+       
+       // If we have a grass surface, check the lenght and consider what percentage we need to use
+       if ($('#cb_surf_1').is(":checked")) {
+          gl=$('#tb_surf_1').val();
+          MaxPercentage=5+parseInt(gl);
+          factor=1;
+          if (gl>=10) factor=2;
+          console.log("We will use "+MaxPercentage+"% for the grass factor");
+          if (gl>20) console.log('Warning: VERY long grass ... consider a dialog for this');
+       }
+       
+       // Check if the user selected a soft surface
+       if ($('#cb_surf_2').is(":checked")) {
+          if (35>=MaxPercentage) {
+             MaxPercentage=35;
+             factor=3;
+             console.log("We will use "+MaxPercentage+"% for the soft surface");
+          }
+       }
+       
+       // If we have water or slush check the depth and consider what percentage we need to use
+       if ($('#cb_surf_3').is(":checked")) {
+          wd=$('#tb_surf_3').val();
+          if (20*wd>=MaxPercentage) {
+             MaxPercentage=20*wd;
+             factor=4;
+             console.log("We will use "+MaxPercentage+"% for the water/slush factor");          
+          }
+          if (wd>2.5) console.log('Warning: Water/Slush depth exceeds max of 2.5 cm ... consider a dialog for this');
+       }
+       
+       // If we have wet snow check the depth and consider what percentage we need to use
+       if ($('#cb_surf_4').is(":checked")) {
+          wsd=$('#tb_surf_4').val();
+          if (10*wsd>=MaxPercentage) {
+             MaxPercentage=10*wsd;
+             factor=5;
+             console.log("We will use "+MaxPercentage+"% for the wet snow factor");
+          }
+          if (wsd>5) console.log('Warning: Wet snow depth exceeds max of 5 cm ... consider a dialog for this');
+       }
+
+       // If we have frozzen snow check the depth and consider what percentage we need to use
+       if ($('#cb_surf_5').is(":checked")) {
+          fsd=$('#tb_surf_5').val();
+          if (5*fsd>=MaxPercentage) {
+             MaxPercentage=5*fsd;
+             factor=6;
+             console.log("We will use "+MaxPercentage+"% for the frozen snow factor");
+          }
+          if (fsd>10) console.log('Warning: Frozen snow depth exceeds max of 10 cm ... consider a dialog for this');
+       }
+
+       // If this is uphill check the slope percentage and consider what percentage factor we need to use
+       if ($('#cb_surf_6').is(":checked")) {
+          slp=$('#tb_surf_6').val();
+          if (10*slp>=MaxPercentage) {
+             MaxPercentage=10*slp;
+             factor=7;
+             console.log("We will use "+MaxPercentage+"% for the uphill slope factor");
+          }
+          if (slp>3) console.log('Warning: Uphill slope exceeds 3% ... consider a dialog for this');
+       }
+       
+       console.log("The max factor is "+MaxPercentage+"% compensation for factor #"+factor);      
+       
+       // Write to server side script...        
+        google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: TO Factor details written to sheet');})
+                .writeTOfactor(MaxPercentage, factor);
+       
+    });
+    
+    // Move focus to input field if checked
+    $('#cl_surf_1').change(function(e){if($('#cl_surf_1').is(":checked")) $('#tl_surf_1').focus();});
+    $('#cl_surf_2').change(function(e){if($('#cl_surf_2').is(":checked")) $('#tl_surf_2').focus();});
+    $('#cl_surf_4').change(function(e){if($('#cl_surf_4').is(":checked")) $('#tl_surf_4').focus();});
+
+
+     // Action Button for Take off surface factors
+     $('#LDBtn').click(function(e) {
+       e.preventDefault();
+       factor=0;
+       MaxPercentage=0;
+       
+       // If we have dry grass, check the lenght and consider what percentage we need to use
+       if ($('#cl_surf_1').is(":checked")) {
+          gl=$('#tl_surf_1').val();
+          // for now the grass lenght is ignored, we will just use 20% if this is an acceptable number
+          MaxPercentage=20;
+          factor=1;
+          if (gl>20) console.log('Warning: VERY long grass ... consider a dialog for this');
+       }
+
+       // Wet grass, check the lenght and consider what percentage we need to use
+       if ($('#cl_surf_2').is(":checked")) {
+          gl=$('#tl_surf_2').val();
+          // for now the grass lenght is ignored, we will just use 20% if this is an acceptable number
+          MaxPercentage=30;
+          factor=2;
+          if (gl>20) console.log('Warning: VERY long grass ... consider a dialog for this');
+       }
+
+       // Check if the user selected a soft surface
+       if ($('#cl_surf_3').is(":checked")) {
+          if (25>=MaxPercentage) {
+             MaxPercentage=25;
+             factor=3;
+             console.log("We will use "+MaxPercentage+"% for the soft surface");
+          }
+       }
+
+       // If this is downhill check the slope percentage and consider what percentage factor we need to use
+       if ($('#cl_surf_4').is(":checked")) {
+          slp=$('#tl_surf_l').val();
+          if (10*slp/2>=MaxPercentage) {
+             MaxPercentage=10*slp/2;
+             factor=4;
+             console.log("We will use "+MaxPercentage+"% for the downhill slope factor");
+          }
+          if (slp>2) console.log('Warning: downhill slope exceeds 2% ... consider a dialog for this');
+       }
+
+       
+       console.log("The max landing factor is "+MaxPercentage+"% compensation for factor #"+factor);      
+       
+       // Write to server side script...        
+        google.script.run.withSuccessHandler(function(myHTML, element) {console.log('TOB: LD Factor details written to sheet');})
+                .writeLDfactor(MaxPercentage, factor);
+       
+    });
+    
+});
+
+     
+function drawCurveTypes1() {
+
+        // Build string with all this 
+        dataRows="[";
+        for (i in EnvelopeCoords) {
+          if (i!=0) dataRows+=",";
+          newRow="[";
+          for (j in EnvelopeCoords[i]) {
+             if (j!=0) newRow+=",";
+             if (EnvelopeCoords[i][j]=="N") {
+                newRow+= "null"; 
+             } else {
+                newRow+=EnvelopeCoords[i][j];
+             }
+          }
+          newRow+="]";
+          dataRows+=newRow;
+        }
+        dataRows+="]";
+        
+        console.log("TOB dataRows: "+dataRows);
+                                        
+
+        var data = new google.visualization.DataTable();
+        
+        data.addColumn('number', 'Moment');
+        data.addColumn('number', 'Weight');
+        data.addColumn('number', 'TOW');
+        data.addColumn('number', 'LW');
+        console.log("TOB: headers added");
+     
+        data.addRows(eval(dataRows));
+        console.log("TOB: dataRows added");
+        
+        var options = {
+              title: 'Weight and Balance Envelope',
+              hAxis: {
+                title: 'InLbs\n1000',
+                minValue:50,
+                maxValue:120,
+                viewWindow: {min:50,  max:120},
+                gridlines: {color: '#333', count: 8}
+              },
+              vAxis: {
+                title: 'Weight\nLbs',
+                minValue:1300,
+                maxValue:2500,
+                viewWindow: { max:2500, min:1300},
+                gridlines: {color: '#333', count: 16}
+              },
+              series: {
+                1: {pointSize:5, color:'red'},
+                2: {pointSize:5, color: 'green'}
+              },
+              width: 300,
+              height: 500,
+              legend:{position:'none'}
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+           
+        // Setting the event listener for the chart 
+        google.visualization.events.addListener(chart, 'click', clickHandler);
+
+        chart.draw(data, options);
+}
+             
+// Setting the event listener for the chart - hide when clicked
+function clickHandler() {
+     document.getElementById('chart_div').style.visibility='hidden';
+}
+
+</script>
